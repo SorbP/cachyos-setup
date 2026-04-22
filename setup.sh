@@ -15,7 +15,7 @@ echo -e "\n${CYAN}=== CachyOS post-install: FX505DV ===${NC}\n"
 # 0. Kontrollera nätverk
 # ---------------------------------------------------------------------------
 info "Kontrollerar nätverksanslutning..."
-ping -c 1 -W 3 archlinux.org &>/dev/null || die "Ingen nätverksanslutning. Koppla in ethernet och försök igen."
+ping -c 1 -W 3 archlinux.org &>/dev/null || die "Ingen nätverksanslutning."
 ok "Nätverk OK"
 
 # ---------------------------------------------------------------------------
@@ -26,10 +26,10 @@ sudo pacman -Syu --noconfirm
 ok "System uppdaterat"
 
 # ---------------------------------------------------------------------------
-# 2. Installera yay om det saknas
+# 2. yay
 # ---------------------------------------------------------------------------
 if ! command -v yay &>/dev/null; then
-    info "Installerar yay (AUR-helper)..."
+    info "Installerar yay..."
     sudo pacman -S --noconfirm --needed git base-devel
     git clone https://aur.archlinux.org/yay-bin.git /tmp/yay-bin
     (cd /tmp/yay-bin && makepkg -si --noconfirm)
@@ -40,44 +40,29 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 3. Hårdvara — drivrutiner & FX505DV-specifikt
+# 3. Hårdvara
 # ---------------------------------------------------------------------------
 info "Installerar hårdvarupaket..."
-
-# envycontrol — Optimus-hantering
 yay -S --noconfirm --needed envycontrol
-
-# faustus-dkms — tangentbordsbelysning + fläktlägen för ASUS TUF FX505DV
 yay -S --noconfirm --needed faustus-dkms
-
-# FFADO — RME Fireface 400 via FireWire
-sudo pacman -S --noconfirm --needed ffado
-
 ok "Hårdvarupaket installerade"
 
 # ---------------------------------------------------------------------------
-# 4. Realtek 8822CE WiFi-tweaken
+# 4. Realtek 8822CE WiFi
 # ---------------------------------------------------------------------------
 info "Konfigurerar Realtek 8822CE (rtw88)..."
-MODPROBE_CONF="/etc/modprobe.d/rtw88.conf"
-echo "options rtw88_8822ce disable_lps_deep=1 ips=0" | sudo tee "$MODPROBE_CONF" > /dev/null
-ok "WiFi-tweaken skriven till $MODPROBE_CONF"
+echo "options rtw88_8822ce disable_lps_deep=1 ips=0" | sudo tee /etc/modprobe.d/rtw88.conf > /dev/null
+ok "WiFi-tweaken skriven"
 
 # ---------------------------------------------------------------------------
 # 5. Terminal-stack
 # ---------------------------------------------------------------------------
 info "Installerar terminal-stack..."
 sudo pacman -S --noconfirm --needed \
-    kitty \
-    zellij \
-    fish \
-    starship \
-    yazi \
-    ffmpegthumbnailer unar jq poppler fd ripgrep fzf zoxide  # yazi-beroenden
+    kitty zellij fish starship yazi \
+    ffmpegthumbnailer jq poppler fd ripgrep fzf zoxide wofi
 
-# JetBrains Mono Nerd Font
 yay -S --noconfirm --needed ttf-jetbrains-mono-nerd
-
 ok "Terminal-stack installerad"
 
 # ---------------------------------------------------------------------------
@@ -93,132 +78,206 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 7. Configs — kitty, starship, VS Code
+# 7. Configs (inbäddade — ingen nätverkshämtning)
 # ---------------------------------------------------------------------------
-info "Hämtar och installerar configs..."
+info "Installerar configs..."
 
-CONFIGS_URL="https://raw.githubusercontent.com/SorbP/cachyos-setup/main/configs"
+# Kitty — Okabe-Ito Deutan tema
+mkdir -p "$HOME/.config/kitty/themes"
+cat > "$HOME/.config/kitty/themes/okabe-ito-deutan.conf" << 'KITTY_EOF'
+# Okabe-Ito Deutan — colorblind-friendly theme
+background            #1c1c1c
+foreground            #f0e442
+selection_background  #0072b2
+selection_foreground  #ffffff
+cursor                #e69f00
+cursor_text_color     #1c1c1c
 
-mkdir -p "$HOME/.config/kitty"
-curl -fsSL "$CONFIGS_URL/kitty-okabe-ito-deutan.conf" -o "$HOME/.config/kitty/themes/okabe-ito-deutan.conf"
-# Lägg till theme-inkludering om den saknas
-if ! grep -q "okabe-ito-deutan" "$HOME/.config/kitty/kitty.conf" 2>/dev/null; then
-    echo "include themes/okabe-ito-deutan.conf" >> "$HOME/.config/kitty/kitty.conf"
+color0   #1c1c1c
+color8   #666666
+color1   #d55e00
+color9   #e69f00
+color2   #56b4e9
+color10  #009e73
+color3   #f0e442
+color11  #f0e442
+color4   #0072b2
+color12  #56b4e9
+color5   #cc79a7
+color13  #cc79a7
+color6   #009e73
+color14  #56b4e9
+color7   #dddddd
+color15  #ffffff
+KITTY_EOF
+
+if [ ! -f "$HOME/.config/kitty/kitty.conf" ]; then
+    touch "$HOME/.config/kitty/kitty.conf"
 fi
+grep -q "okabe-ito-deutan" "$HOME/.config/kitty/kitty.conf" || \
+    echo "include themes/okabe-ito-deutan.conf" >> "$HOME/.config/kitty/kitty.conf"
 
-mkdir -p "$HOME/.config"
-curl -fsSL "$CONFIGS_URL/starship-deutan.toml" -o "$HOME/.config/starship.toml"
+# Starship — Okabe-Ito Deutan
+cat > "$HOME/.config/starship.toml" << 'STARSHIP_EOF'
+[character]
+success_symbol = "[❯](bold #009e73)"
+error_symbol   = "[❯](bold #d55e00)"
 
-# Starship i fish
+[directory]
+style = "bold #56b4e9"
+truncation_length = 3
+
+[git_branch]
+style  = "bold #e69f00"
+symbol = " "
+
+[git_status]
+style = "#cc79a7"
+
+[cmd_duration]
+style    = "#f0e442"
+min_time = 500
+
+[username]
+style_user  = "bold #0072b2"
+show_always = false
+STARSHIP_EOF
+
+# Fish config
 FISH_CONFIG="$HOME/.config/fish/config.fish"
 mkdir -p "$(dirname "$FISH_CONFIG")"
 grep -q "starship init" "$FISH_CONFIG" 2>/dev/null || \
     echo 'starship init fish | source' >> "$FISH_CONFIG"
+grep -q "alias ls" "$FISH_CONFIG" 2>/dev/null || \
+    echo "alias ls='eza --icons'" >> "$FISH_CONFIG"
+grep -q "alias ll" "$FISH_CONFIG" 2>/dev/null || \
+    echo "alias ll='eza --icons -la'" >> "$FISH_CONFIG"
+grep -q "MANGOHUD" "$FISH_CONFIG" 2>/dev/null || \
+    echo 'set -x MANGOHUD 1' >> "$FISH_CONFIG"
 
 ok "Configs installerade"
 
 # ---------------------------------------------------------------------------
-# 8. VS Code
+# 8. Hyprland — svenska tangentbord + keybinds
+# ---------------------------------------------------------------------------
+info "Konfigurerar Hyprland..."
+HYPR_CONF="$HOME/.config/hypr/hyprland.conf"
+if [ -f "$HYPR_CONF" ]; then
+    if ! grep -q "kb_layout" "$HYPR_CONF"; then
+        cat >> "$HYPR_CONF" << 'HYPR_EOF'
+
+# === Tillagt av setup.sh ===
+input {
+    kb_layout = se
+}
+
+bind = SUPER, R, exec, wofi --show drun
+bind = SUPER, Q, killactive
+bind = SUPER, F, fullscreen
+bind = SUPER, V, togglefloating
+bind = SUPER, left, movefocus, l
+bind = SUPER, right, movefocus, r
+bind = SUPER, up, movefocus, u
+bind = SUPER, down, movefocus, d
+HYPR_EOF
+        ok "Hyprland keybinds + svenska tangentbord lagt till"
+    else
+        warn "Hyprland input redan konfigurerat — hoppar över"
+    fi
+else
+    warn "hyprland.conf hittades inte — hoppar över"
+fi
+
+# ---------------------------------------------------------------------------
+# 9. VS Code
 # ---------------------------------------------------------------------------
 info "Installerar VS Code..."
 yay -S --noconfirm --needed visual-studio-code-bin
 
-# VS Code deutan-settings
 VSCODE_SETTINGS="$HOME/.config/Code/User/settings.json"
 mkdir -p "$(dirname "$VSCODE_SETTINGS")"
 if [ ! -f "$VSCODE_SETTINGS" ]; then
-    curl -fsSL "$CONFIGS_URL/vscode-deutan-settings.json" -o "$VSCODE_SETTINGS"
+    cat > "$VSCODE_SETTINGS" << 'VSCODE_EOF'
+{
+    "editor.fontFamily": "'JetBrainsMono Nerd Font', monospace",
+    "editor.fontSize": 14,
+    "editor.fontLigatures": true,
+    "terminal.integrated.fontFamily": "'JetBrainsMono Nerd Font'",
+    "workbench.colorCustomizations": {
+        "terminal.ansiBlack":   "#1c1c1c",
+        "terminal.ansiRed":     "#d55e00",
+        "terminal.ansiGreen":   "#009e73",
+        "terminal.ansiYellow":  "#f0e442",
+        "terminal.ansiBlue":    "#0072b2",
+        "terminal.ansiMagenta": "#cc79a7",
+        "terminal.ansiCyan":    "#56b4e9",
+        "terminal.ansiWhite":   "#dddddd"
+    }
+}
+VSCODE_EOF
     ok "VS Code settings installerade"
 else
-    warn "VS Code settings finns redan — hoppar över (kolla $VSCODE_SETTINGS manuellt)"
+    warn "VS Code settings finns redan — hoppar över"
 fi
 
 # ---------------------------------------------------------------------------
-# 9. Program
+# 10. Program
 # ---------------------------------------------------------------------------
 info "Installerar program..."
 
-# Pacman-paket
 sudo pacman -S --noconfirm --needed \
-    steam \
-    discord \
-    btop \
-    mangohud \
-    nvtop
+    steam discord btop mangohud nvtop flatpak
 
-# AUR-paket
 yay -S --noconfirm --needed \
-    teamspeak6-client \
-    fsearch-git \
-    onedrive-abraunegg \
-    arduino-ide-bin \
-    gwe  # GreenWithEnvy
+    teamspeak6-client fsearch-git onedrive-abraunegg arduino-ide-bin gwe
 
-# Bottles (kör Windows-appar via Wine — Flatpak-version rekommenderas)
-sudo pacman -S --noconfirm --needed flatpak
 flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
 flatpak install -y flathub com.usebottles.bottles
+flatpak install -y flathub com.proton.Pass
 
-# PlatformIO
 sudo pacman -S --noconfirm --needed python-pip
 pip install --user platformio
 
+ok "Program installerade"
+
 # ---------------------------------------------------------------------------
-# CLI-verktyg
+# 11. CLI-verktyg
 # ---------------------------------------------------------------------------
 info "Installerar CLI-verktyg..."
 sudo pacman -S --noconfirm --needed \
-    bat \        # cat med syntaxmarkering
-    eza \        # modern ls
-    dust \       # du-ersättare
-    duf \        # df-ersättare
-    tldr \       # kortfattade man-sidor
-    fastfetch \  # systeminfo (neofetch-ersättare)
-    p7zip \      # 7z-stöd
-    unzip \
-    wget \
-    ffmpeg \
-    yt-dlp \
-    nmap \
-    bandwhich    # nätverksbandbredd per process
-
-# eza-alias i fish
-grep -q "alias ls" "$HOME/.config/fish/config.fish" 2>/dev/null || \
-    echo "alias ls='eza --icons'" >> "$HOME/.config/fish/config.fish"
-grep -q "alias ll" "$HOME/.config/fish/config.fish" 2>/dev/null || \
-    echo "alias ll='eza --icons -la'" >> "$HOME/.config/fish/config.fish"
-
+    bat eza dust duf tldr fastfetch \
+    p7zip unzip wget ffmpeg yt-dlp nmap bandwhich
 ok "CLI-verktyg installerade"
 
 # ---------------------------------------------------------------------------
-# Claude Code
+# 12. Claude Code
 # ---------------------------------------------------------------------------
 info "Installerar Claude Code..."
 sudo pacman -S --noconfirm --needed nodejs npm
 npm install -g @anthropic-ai/claude-code
 ok "Claude Code installerat — kör 'claude' för att logga in"
 
-# Wootility (AppImage)
-info "Laddar ner Wootility (AppImage)..."
-WOOTILITY_URL="https://api.github.com/repos/WootingKb/wootility/releases/latest"
-WOOTILITY_APPIMAGE=$(curl -fsSL "$WOOTILITY_URL" | grep -oP '"browser_download_url": "\K[^"]+\.AppImage')
-if [ -n "$WOOTILITY_APPIMAGE" ]; then
+# ---------------------------------------------------------------------------
+# 13. Wootility AppImage
+# ---------------------------------------------------------------------------
+info "Laddar ner Wootility..."
+WOOTILITY_APPIMAGE=$(curl -fsSL "https://api.github.com/repos/WootingKb/wootility/releases/latest" \
+    | grep -oP '"browser_download_url": "\K[^"]+\.AppImage') || true
+if [ -n "${WOOTILITY_APPIMAGE:-}" ]; then
     mkdir -p "$HOME/Applications"
     curl -fsSL "$WOOTILITY_APPIMAGE" -o "$HOME/Applications/Wootility.AppImage"
     chmod +x "$HOME/Applications/Wootility.AppImage"
-    ok "Wootility nedladdad till ~/Applications/Wootility.AppImage"
+    ok "Wootility nedladdad till ~/Applications/"
 else
-    warn "Kunde inte hämta Wootility automatiskt — ladda ner manuellt från wooting.io"
+    warn "Kunde inte hämta Wootility — ladda ner manuellt från wooting.io"
 fi
 
-ok "Program installerade"
-
 # ---------------------------------------------------------------------------
-# 10. MangoHud — aktivera för Steam globalt
+# 14. MangoHud
 # ---------------------------------------------------------------------------
 info "Konfigurerar MangoHud..."
 mkdir -p "$HOME/.config/MangoHud"
-cat > "$HOME/.config/MangoHud/MangoHud.conf" << 'EOF'
+cat > "$HOME/.config/MangoHud/MangoHud.conf" << 'MANGO_EOF'
 legacy_layout=false
 cpu_stats
 gpu_stats
@@ -228,50 +287,28 @@ ram
 vram
 cpu_temp
 gpu_temp
-EOF
-# Lägg till MANGOHUD=1 i Steam launch options görs manuellt per spel,
-# men global aktivering via environment:
-grep -q "MANGOHUD" "$HOME/.config/fish/config.fish" 2>/dev/null || \
-    echo 'set -x MANGOHUD 1' >> "$HOME/.config/fish/config.fish"
+MANGO_EOF
 ok "MangoHud konfigurerat"
 
 # ---------------------------------------------------------------------------
-# 11. Batteritröskeln — kontroll
+# 15. Batteritröskeln
 # ---------------------------------------------------------------------------
-echo ""
-info "Kontrollerar batteritröskeln (ASUS charge limit)..."
 THRESHOLD_FILE="/sys/class/power_supply/BAT0/charge_control_end_threshold"
 if [ -f "$THRESHOLD_FILE" ]; then
-    CURRENT=$(cat "$THRESHOLD_FILE")
-    ok "Batteritröskeln stöds! Nuvarande gräns: ${CURRENT}%"
-    info "Sätt till 80% med: echo 80 | sudo tee $THRESHOLD_FILE"
+    ok "Batteritröskeln stöds! Nuvarande: $(cat $THRESHOLD_FILE)%"
+    info "Sätt till 80%: echo 80 | sudo tee $THRESHOLD_FILE"
 else
-    warn "Batteritröskeln stöds INTE på denna maskin (filen saknas)"
-    warn "faustus-dkms fixar tangentbordsbelysning och fläktar men inte batteri"
+    warn "Batteritröskeln stöds inte på denna maskin"
 fi
 
 # ---------------------------------------------------------------------------
-# 12. Sammanfattning
+# Klart
 # ---------------------------------------------------------------------------
 echo ""
 echo -e "${CYAN}=== Klart! ===${NC}"
 echo ""
-echo "Gjort:"
-echo "  - System uppdaterat"
-echo "  - faustus-dkms (tangentbordsbelysning + fläktar)"
-echo "  - envycontrol (kör 'sudo envycontrol -s nvidia' för gaming)"
-echo "  - Realtek 8822CE WiFi-tweaken"
-echo "  - FFADO (RME Fireface 400)"
-echo "  - Terminal-stack: Kitty + Zellij + Fish + Starship + Yazi"
-echo "  - JetBrains Mono Nerd Font"
-echo "  - Okabe-Ito Kitty-tema + Starship deutan"
-echo "  - VS Code"
-echo "  - Steam, Discord, TeamSpeak 6, FSearch, Wootility, Bottles
-  - CLI: bat, eza, dust, duf, tldr, fastfetch, ffmpeg, yt-dlp, nmap
-  - Claude Code (kör 'claude' för att logga in efter omstart)"
-echo "  - MangoHud, btop, nvtop, GreenWithEnvy"
-echo "  - PlatformIO, Arduino IDE"
-echo "  - onedrive-abraunegg"
-echo ""
-echo "Starta om för att aktivera faustus-dkms och WiFi-tweaken."
+echo "  - Starta om för att aktivera faustus-dkms och WiFi-tweaken"
+echo "  - Kör 'hyprctl reload' för att ladda om Hyprland-keybinds"
+echo "  - Kör 'claude' för att logga in på Claude Code"
+echo "  - Svenska tangentbord aktivt efter omstart"
 echo ""
