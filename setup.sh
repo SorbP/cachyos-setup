@@ -163,6 +163,41 @@ flatpak install -y flathub com.usebottles.bottles
 sudo pacman -S --noconfirm --needed python-pip
 pip install --user platformio
 
+# ---------------------------------------------------------------------------
+# CLI-verktyg
+# ---------------------------------------------------------------------------
+info "Installerar CLI-verktyg..."
+sudo pacman -S --noconfirm --needed \
+    bat \        # cat med syntaxmarkering
+    eza \        # modern ls
+    dust \       # du-ersättare
+    duf \        # df-ersättare
+    tldr \       # kortfattade man-sidor
+    fastfetch \  # systeminfo (neofetch-ersättare)
+    p7zip \      # 7z-stöd
+    unzip \
+    wget \
+    ffmpeg \
+    yt-dlp \
+    nmap \
+    bandwhich    # nätverksbandbredd per process
+
+# eza-alias i fish
+grep -q "alias ls" "$HOME/.config/fish/config.fish" 2>/dev/null || \
+    echo "alias ls='eza --icons'" >> "$HOME/.config/fish/config.fish"
+grep -q "alias ll" "$HOME/.config/fish/config.fish" 2>/dev/null || \
+    echo "alias ll='eza --icons -la'" >> "$HOME/.config/fish/config.fish"
+
+ok "CLI-verktyg installerade"
+
+# ---------------------------------------------------------------------------
+# Claude Code
+# ---------------------------------------------------------------------------
+info "Installerar Claude Code..."
+sudo pacman -S --noconfirm --needed nodejs npm
+npm install -g @anthropic-ai/claude-code
+ok "Claude Code installerat — kör 'claude' för att logga in"
+
 # Wootility (AppImage)
 info "Laddar ner Wootility (AppImage)..."
 WOOTILITY_URL="https://api.github.com/repos/WootingKb/wootility/releases/latest"
@@ -231,7 +266,9 @@ echo "  - Terminal-stack: Kitty + Zellij + Fish + Starship + Yazi"
 echo "  - JetBrains Mono Nerd Font"
 echo "  - Okabe-Ito Kitty-tema + Starship deutan"
 echo "  - VS Code"
-echo "  - Steam, Discord, TeamSpeak 6, FSearch, Wootility, Bottles"
+echo "  - Steam, Discord, TeamSpeak 6, FSearch, Wootility, Bottles
+  - CLI: bat, eza, dust, duf, tldr, fastfetch, ffmpeg, yt-dlp, nmap
+  - Claude Code (kör 'claude' för att logga in efter omstart)"
 echo "  - MangoHud, btop, nvtop, GreenWithEnvy"
 echo "  - PlatformIO, Arduino IDE"
 echo "  - onedrive-abraunegg"
