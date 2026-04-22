@@ -154,6 +154,11 @@ yay -S --noconfirm --needed \
     arduino-ide-bin \
     gwe  # GreenWithEnvy
 
+# Bottles (kör Windows-appar via Wine — Flatpak-version rekommenderas)
+sudo pacman -S --noconfirm --needed flatpak
+flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+flatpak install -y flathub com.usebottles.bottles
+
 # PlatformIO
 sudo pacman -S --noconfirm --needed python-pip
 pip install --user platformio
@@ -226,7 +231,7 @@ echo "  - Terminal-stack: Kitty + Zellij + Fish + Starship + Yazi"
 echo "  - JetBrains Mono Nerd Font"
 echo "  - Okabe-Ito Kitty-tema + Starship deutan"
 echo "  - VS Code"
-echo "  - Steam, Discord, TeamSpeak 6, FSearch, Wootility"
+echo "  - Steam, Discord, TeamSpeak 6, FSearch, Wootility, Bottles"
 echo "  - MangoHud, btop, nvtop, GreenWithEnvy"
 echo "  - PlatformIO, Arduino IDE"
 echo "  - onedrive-abraunegg"
