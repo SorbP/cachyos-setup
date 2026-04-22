@@ -1,0 +1,27 @@
+{
+  // Install theme: GitHub.github-vscode-theme
+  // Then select: "GitHub Dark Colorblind (Beta)" in theme picker
+  "workbench.colorTheme": "GitHub Dark Colorblind (Beta)",
+
+  // Okabe-Ito token color overrides for deuteranopia
+  "editor.tokenColorCustomizations": {
+    "comments": "#CC79A7",
+    "keywords": "#56B4E9",
+    "strings": "#F0E442",
+    "numbers": "#E69F00",
+    "types": "#0072B2",
+    "functions": "#56B4E9",
+    "variables": "#F2F2F2"
+  },
+
+  // Git decorations — replace red/green with orange/blue
+  "workbench.colorCustomizations": {
+    "gitDecoration.addedResourceForeground": "#56B4E9",
+    "gitDecoration.modifiedResourceForeground": "#E69F00",
+    "gitDecoration.deletedResourceForeground": "#D55E00",
+    "gitDecoration.untrackedResourceForeground": "#CC79A7",
+    "editorError.foreground": "#D55E00",
+    "editorWarning.foreground": "#E69F00",
+    "editorInfo.foreground": "#56B4E9"
+  }
+}

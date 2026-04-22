@@ -1,0 +1,43 @@
+# Starship prompt config — Okabe-Ito deuteranopia-optimized
+# Place at ~/.config/starship.toml
+# Uses hex colors (not named ANSI) for consistency regardless of terminal theme
+
+[directory]
+style = "bold #56B4E9"
+
+[git_branch]
+style = "bold #E69F00"
+
+[git_status]
+style = "bold #F0E442"
+ahead = "⇡${count}"
+behind = "⇣${count}"
+modified = "!"
+staged = "+"
+deleted = "✘"
+
+[rust]
+style = "bold #D55E00"
+
+[python]
+style = "bold #0072B2"
+
+[c]
+style = "bold #56B4E9"
+
+[dotnet]
+style = "bold #CC79A7"
+
+[cmd_duration]
+style = "bold #E69F00"
+
+[username]
+style_user = "bold #56B4E9"
+style_root = "bold #D55E00"
+
+[hostname]
+style = "bold #0072B2"
+
+[character]
+success_symbol = "[❯](bold #56B4E9)"
+error_symbol = "[❯](bold #D55E00)"
